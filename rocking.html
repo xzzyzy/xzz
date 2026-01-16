@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <!-- 防止微信内置浏览器屏蔽 -->
+<meta name="referrer" content="never">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<!-- 禁止微信自动识别电话号码和邮箱 -->
+<meta name="format-detection" content="telephone=no, email=no">
+
+<!-- iOS Safari 触摸优化 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>雇佣童工</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 0;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .main-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #ff9966, #ff5e62);
+            border: none;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            box-shadow: 0 10px 20px rgba(255,94,98,0.3);
+            transition: all 0.1s;
+            touch-action: manipulation;
+        }
+
+        .main-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 10px rgba(255,94,98,0.2);
+        }
+
+        .upgrades-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .upgrade-card {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upgrade-card:active {
+            transform: scale(0.98);
+        }
+
+        .upgrade-card.unlocked {
+            background: rgba(46, 204, 113, 0.2);
+        }
+
+        .upgrade-cost {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            padding: 10px;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            color: white;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .content {
+            padding-bottom: 70px; /* 为底部导航留空间 */
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 动画效果 */
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+
+        .float-number {
+            position: fixed;
+            pointer-events: none;
+            font-weight: bold;
+            font-size: 20px;
+            color: #ffd700;
+            animation: floatUp 1s forwards;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 400px) {
+            .main-button {
+                width: 120px;
+                height: 120px;
+                font-size: 18px;
+            }
+
+            .upgrades-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 点点泰菲</h1>
+            <p>点一点，挂一挂，造泰菲 </p>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div>💰 金币</div>
+                <div id="gold" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+                <div>⚡ 点击收益</div>
+                <div id="clickValue" class="stat-value">1</div>
+            </div>
+            <div class="stat-card">
+                <div>🚀 每秒收益</div>
+                <div id="perSecond" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+                <div>🌟 总收益</div>
+                <div id="totalEarned" class="stat-value">0</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="tab-mine" class="tab-content active">
+                <button id="mineBtn" class="main-button">
+                    💎<br>点击挖矿！
+                </button>
+                <div style="text-align: center; margin-top: 10px;">
+                    <p>长按可连续点击</p>
+                </div>
+            </div>
+
+            <div id="tab-upgrade" class="tab-content">
+                <h3 style="text-align: center; margin: 15px 0;">🔧 升级商店</h3>
+                <div id="upgradesList" class="upgrades-container">
+                    <!-- 升级项动态生成 -->
+                </div>
+            </div>
+
+            <div id="tab-manager" class="tab-content">
+                <h3 style="text-align: center; margin: 15px 0;">👨‍💼 经理管理</h3>
+                <div id="managersList" class="upgrades-container">
+                    <!-- 经理项动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="#" class="nav-btn" onclick="showTab('mine')">🏠 挖矿</a>
+            <a href="#" class="nav-btn" onclick="showTab('upgrade')">🛒 升级</a>
+            <a href="#" class="nav-btn" onclick="showTab('manager')">👥 经理</a>
+            <a href="#" class="nav-btn" onclick="saveGame()">💾 保存</a>
+        </div>
+    </div>
+
+    <script>
+        // 游戏数据
+        let game = {
+            gold: 0,
+            clickPower: 1,
+            perSecond: 0,
+            totalEarned: 0,
+            upgrades: [],
+            managers: [],
+            lastUpdate: Date.now()
+        };
+
+        // 升级配置
+        const upgradeConfig = [
+            { id: 1, name: "铁镐", icon: "⛏️", cost: 10, power: 1, owned: 0 },
+            { id: 2, name: "铜镐", icon: "🛠️", cost: 50, power: 2, owned: 0 },
+            { id: 3, name: "银镐", icon: "⚒️", cost: 200, power: 5, owned: 0 },
+            { id: 4, name: "金镐", icon: "🔨", cost: 1000, power: 10, owned: 0 },
+            { id: 5, name: "钻石镐", icon: "💎", cost: 5000, power: 20, owned: 0 },
+            { id: 6, name: "小矿工", icon: "👷", cost: 100, income: 1, owned: 0 },
+            { id: 7, name: "工程师", icon: "👨‍🔧", cost: 500, income: 5, owned: 0 },
+            { id: 8, name: "矿场经理", icon: "👨‍💼", cost: 2000, income: 20, owned: 0 }
+        ];
+
+        // 经理配置
+        const managerConfig = [
+            { id: 1, name: "初级泰菲", icon: "👨‍💼", cost: 1000, effect: "自动点击1次/秒", owned: false },
+            { id: 2, name: "高级泰菲", icon: "👨‍🔬", cost: 5000, effect: "自动点击5次/秒", owned: false },
+            { id: 3, name: "总监泰菲", icon: "👨‍💻", cost: 20000, effect: "自动点击20次/秒", owned: false }
+        ];
+
+        // 初始化游戏
+        function initGame() {
+            loadGame();
+            renderUpgrades();
+            renderManagers();
+            updateDisplay();
+            startGameLoop();
+
+            // 离线收益
+            const offlineTime = Date.now() - game.lastUpdate;
+            if (offlineTime > 1000) { // 至少离线1秒
+                const offlineSeconds = Math.floor(offlineTime / 1000);
+                const offlineGold = offlineSeconds * game.perSecond;
+                if (offlineGold > 0) {
+                    game.gold += offlineGold;
+                    game.totalEarned += offlineGold;
+                    showFloatText(`离线收益: +${formatNumber(offlineGold)}`, 3000);
+                }
+            }
+        }
+
+        // 挖矿点击
+        document.getElementById('mineBtn').addEventListener('click', mine);
+
+        // 长按连续点击
+        let holdTimer;
+        document.getElementById('mineBtn').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            holdTimer = setInterval(mine, 100); // 每100ms点击一次
+        });
+
+        document.getElementById('mineBtn').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            clearInterval(holdTimer);
+        });
+
+        // 防止长按出现菜单
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        function mine() {
+            game.gold += game.clickPower;
+            game.totalEarned += game.clickPower;
+
+            // 点击效果
+            const btn = document.getElementById('mineBtn');
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 100);
+
+            // 显示漂浮数字
+            showFloatText(`+${game.clickPower}`, 1000, btn.getBoundingClientRect());
+
+            updateDisplay();
+        }
+
+        // 显示漂浮数字
+        function showFloatText(text, duration, rect) {
+            const floatNum = document.createElement('div');
+            floatNum.className = 'float-number';
+            floatNum.textContent = text;
+
+            if (rect) {
+                floatNum.style.left = (rect.left + rect.width / 2) + 'px';
+                floatNum.style.top = (rect.top) + 'px';
+            } else {
+                floatNum.style.left = '50%';
+                floatNum.style.top = '50%';
+            }
+
+            document.body.appendChild(floatNum);
+
+            setTimeout(() => floatNum.remove(), duration);
+        }
+
+        // 显示消息
+        function showMessage(text, duration = 3000) {
+            const msg = document.createElement('div');
+            msg.textContent = text;
+            msg.style.cssText = `
+                position: fixed;
+                top: 20%;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 20px;
+                z-index: 1000;
+                animation: fadeInOut ${duration}ms;
+            `;
+
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), duration);
+
+            // 添加动画样式
+            if (!document.getElementById('msgAnim')) {
+                const style = document.createElement('style');
+                style.id = 'msgAnim';
+                style.textContent = `
+                    @keyframes fadeInOut {
+                        0%, 100% { opacity: 0; transform: translate(-50%, -20px); }
+                        20%, 80% { opacity: 1; transform: translate(-50%, 0); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // 渲染升级项
+        function renderUpgrades() {
+            const container = document.getElementById('upgradesList');
+            container.innerHTML = '';
+
+            upgradeConfig.forEach(upgrade => {
+                const card = document.createElement('div');
+                card.className = `upgrade-card ${upgrade.owned > 0 ? 'unlocked' : ''}`;
+                card.onclick = () => buyUpgrade(upgrade.id);
+
+                const canAfford = game.gold >= upgrade.cost;
+                card.style.opacity = canAfford ? '1' : '0.6';
+
+                card.innerHTML = `
+                    <div style="font-size: 24px;">${upgrade.icon}</div>
+                    <div style="font-size: 12px; margin: 5px 0;">${upgrade.name}</div>
+                    ${upgrade.power ?
+                        `<div style="font-size: 11px; color: #4cd964;">+${upgrade.power} 点击力</div>` :
+                        `<div style="font-size: 11px; color: #5ac8fa;">+${upgrade.income}/秒</div>`}
+                    <div style="font-size: 11px; margin: 3px 0;">拥有: ${upgrade.owned}</div>
+                    <div class="upgrade-cost">💰 ${formatNumber(upgrade.cost)}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // 渲染经理
+        function renderManagers() {
+            const container = document.getElementById('managersList');
+            container.innerHTML = '';
+
+            managerConfig.forEach(manager => {
+                const card = document.createElement('div');
+                card.className = `upgrade-card ${manager.owned ? 'unlocked' : ''}`;
+                card.onclick = () => buyManager(manager.id);
+
+                const canAfford = game.gold >= manager.cost;
+                card.style.opacity = canAfford ? '1' : '0.6';
+
+                card.innerHTML = `
+                    <div style="font-size: 24px;">${manager.icon}</div>
+                    <div style="font-size: 12px; margin: 5px 0;">${manager.name}</div>
+                    <div style="font-size: 11px; color: #ffcc00; margin: 3px 0;">${manager.effect}</div>
+                    <div style="font-size: 11px; margin: 3px 0;">${manager.owned ? '✅ 已雇佣' : '可雇佣'}</div>
+                    <div class="upgrade-cost">💰 ${formatNumber(manager.cost)}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // 购买升级
+        function buyUpgrade(id) {
+            const upgrade = upgradeConfig.find(u => u.id === id);
+            if (!upgrade) return;
+
+            if (game.gold >= upgrade.cost) {
+                game.gold -= upgrade.cost;
+                upgrade.owned++;
+
+                if (upgrade.power) {
+                    game.clickPower += upgrade.power;
+                }
+                if (upgrade.income) {
+                    game.perSecond += upgrade.income;
+                }
+
+                // 价格递增
+                upgrade.cost = Math.floor(upgrade.cost * 1.5);
+
+                updateDisplay();
+                renderUpgrades();
+                showMessage(`购买成功！${upgrade.name} +1`);
+            } else {
+                showMessage('金币不足！');
+            }
+        }
+
+        // 雇佣经理
+        function buyManager(id) {
+            const manager = managerConfig.find(m => m.id === id);
+            if (!manager || manager.owned) return;
+
+            if (game.gold >= manager.cost) {
+                game.gold -= manager.cost;
+                manager.owned = true;
+
+                // 经理效果
+                switch(id) {
+                    case 1: // 初级泰菲
+                        setInterval(() => mine(), 1000);
+                        break;
+                    case 2: // 高级泰菲
+                        setInterval(() => mine(), 200);
+                        break;
+                    case 3: // 总监泰菲
+                        setInterval(() => { mine(); mine(); }, 100);
+                        break;
+                }
+
+                updateDisplay();
+                renderManagers();
+                showMessage(`雇佣成功！${manager.name} 已上任`);
+            } else {
+                showMessage('金币不足！');
+            }
+        }
+
+        // 游戏主循环
+        function startGameLoop() {
+            setInterval(() => {
+                // 自动收益
+                if (game.perSecond > 0) {
+                    const income = game.perSecond;
+                    game.gold += income;
+                    game.totalEarned += income;
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('gold').textContent = formatNumber(game.gold);
+            document.getElementById('clickValue').textContent = formatNumber(game.clickPower);
+            document.getElementById('perSecond').textContent = formatNumber(game.perSecond);
+            document.getElementById('totalEarned').textContent = formatNumber(game.totalEarned);
+        }
+
+        // 标签页切换
+        function showTab(tabName) {
+            // 隐藏所有标签页
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签页
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            return false; // 阻止链接跳转
+        }
+
+        // 保存游戏
+        function saveGame() {
+            const saveData = {
+                gold: game.gold,
+                clickPower: game.clickPower,
+                perSecond: game.perSecond,
+                totalEarned: game.totalEarned,
+                upgrades: upgradeConfig.map(u => ({ id: u.id, owned: u.owned, cost: u.cost })),
+                managers: managerConfig.map(m => ({ id: m.id, owned: m.owned })),
+                lastUpdate: Date.now()
+            };
+
+            localStorage.setItem('idleMinerSave', JSON.stringify(saveData));
+            showMessage('游戏已保存！');
+        }
+
+        // 加载游戏
+        function loadGame() {
+            const save = localStorage.getItem('idleMinerSave');
+            if (save) {
+                const saveData = JSON.parse(save);
+
+                game.gold = saveData.gold || 0;
+                game.clickPower = saveData.clickPower || 1;
+                game.perSecond = saveData.perSecond || 0;
+                game.totalEarned = saveData.totalEarned || 0;
+                game.lastUpdate = saveData.lastUpdate || Date.now();
+
+                // 加载升级
+                if (saveData.upgrades) {
+                    saveData.upgrades.forEach(savedUpgrade => {
+                        const upgrade = upgradeConfig.find(u => u.id === savedUpgrade.id);
+                        if (upgrade) {
+                            upgrade.owned = savedUpgrade.owned || 0;
+                            upgrade.cost = savedUpgrade.cost || upgrade.cost;
+                        }
+                    });
+                }
+
+                // 加载经理
+                if (saveData.managers) {
+                    saveData.managers.forEach(savedManager => {
+                        const manager = managerConfig.find(m => m.id === savedManager.id);
+                        if (manager) {
+                            manager.owned = savedManager.owned || false;
+                        }
+                    });
+                }
+
+                showMessage('游戏已加载！');
+            }
+        }
+
+        // 格式化数字
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+            if (num >= 10000) return (num / 1000).toFixed(1) + 'K';
+            if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+            return Math.floor(num);
+        }
+
+        // 页面关闭前保存
+        window.addEventListener('beforeunload', saveGame);
+
+        // 每30秒自动保存
+        setInterval(saveGame, 30000);
+
+        // 初始化游戏
+        initGame();
+    </script>
+</body>
+</html>
